@@ -58,7 +58,8 @@ func Perform(args Arguments, writer io.Writer) error {
 			return errors.New("-item flag has to be specified")
 		}
 
-		err = json.Unmarshal(json.RawMessage(args["item"]), &user)
+		item := json.RawMessage(args["item"])
+		err = json.Unmarshal(item, &user)
 		if err != nil {
 			return err
 		}
@@ -147,6 +148,7 @@ func parseArgs() Arguments {
 	item := flag.String("item", "", "Item example: {\"id\": \"1\", \"email\": \"email@test.com\", \"age\": 23}")
 	fileName := flag.String("fileName", "", "Path to json database file")
 	id := flag.String("id", "", "Record Id")
+
 	flag.Parse()
 
 	return Arguments{
