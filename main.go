@@ -17,13 +17,14 @@ type User struct {
 	Age   uint   `json:"age"`
 }
 
-var users []User
-
 const (
 	chmod = 0644
 )
 
 func Perform(args Arguments, writer io.Writer) error {
+
+	var users []User
+	var user User
 
 	if args["operation"] == "" {
 		return errors.New("-operation flag has to be specified")
@@ -33,44 +34,28 @@ func Perform(args Arguments, writer io.Writer) error {
 		return errors.New("-fileName flag has to be specified")
 	}
 
+	file, err := os.OpenFile(args["fileName"], os.O_RDWR|os.O_CREATE, chmod)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	fileContent, err := io.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
 	switch args["operation"] {
 	case "list":
-		file, err := os.OpenFile(args["fileName"], os.O_RDONLY|os.O_CREATE, chmod)
-		defer file.Close()
-
-		if err != nil {
-			return err
-		}
-
-		bytes, err := io.ReadAll(file)
-		if err != nil {
-			return err
-		}
-
-		writer.Write(bytes)
+		writer.Write(fileContent)
 
 	case "add":
 		if args["item"] == "" {
 			return errors.New("-item flag has to be specified")
 		}
 
-		file, err := os.OpenFile(args["fileName"], os.O_RDWR|os.O_CREATE, chmod)
-		defer file.Close()
-
-		if err != nil {
-			return err
-		}
-
-		var users []User
-		var user User
-
-		bytes, err := io.ReadAll(file)
-		if err != nil {
-			return err
-		}
-
-		if len(bytes) != 0 {
-			err := json.Unmarshal(bytes, &users)
+		if len(fileContent) != 0 {
+			err := json.Unmarshal(fileContent, &users)
 			if err != nil {
 				return err
 			}
@@ -92,38 +77,22 @@ func Perform(args Arguments, writer io.Writer) error {
 		}
 
 		users = append(users, user)
-		fmt.Println(users)
-		bytes, err = json.Marshal(users)
+		fileContent, err = json.Marshal(users)
 		if err != nil {
 			return err
 		}
-
-		if _, err := file.WriteAt(bytes, 0); err != nil {
+		if _, err := file.WriteAt(fileContent, 0); err != nil {
 			return err
 		}
-		writer.Write(bytes)
+		writer.Write(fileContent)
 
 	case "findById":
 		if args["id"] == "" {
 			return errors.New("-id flag has to be specified")
 		}
 
-		file, err := os.OpenFile(args["fileName"], os.O_RDONLY, chmod)
-		defer file.Close()
-
-		if err != nil {
-			return err
-		}
-
-		var users []User
-
-		bytes, err := io.ReadAll(file)
-		if err != nil {
-			return err
-		}
-
-		if len(bytes) != 0 {
-			err := json.Unmarshal(bytes, &users)
+		if len(fileContent) != 0 {
+			err := json.Unmarshal(fileContent, &users)
 			if err != nil {
 				return err
 			}
@@ -141,22 +110,8 @@ func Perform(args Arguments, writer io.Writer) error {
 			return errors.New("-id flag has to be specified")
 		}
 
-		file, err := os.OpenFile(args["fileName"], os.O_RDWR|os.O_CREATE, chmod)
-		defer file.Close()
-
-		if err != nil {
-			return err
-		}
-
-		var users []User
-
-		bytes, err := io.ReadAll(file)
-		if err != nil {
-			return err
-		}
-
-		if len(bytes) != 0 {
-			err := json.Unmarshal(bytes, &users)
+		if len(fileContent) != 0 {
+			err := json.Unmarshal(fileContent, &users)
 			if err != nil {
 				return err
 			}
