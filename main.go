@@ -45,6 +45,10 @@ func Perform(args Arguments, writer io.Writer) error {
 		return err
 	}
 
+	if len(fileContent) != 0 {
+		json.Unmarshal(fileContent, &users)
+	}
+
 	switch args["operation"] {
 	case "list":
 		writer.Write(fileContent)
@@ -52,13 +56,6 @@ func Perform(args Arguments, writer io.Writer) error {
 	case "add":
 		if args["item"] == "" {
 			return errors.New("-item flag has to be specified")
-		}
-
-		if len(fileContent) != 0 {
-			err := json.Unmarshal(fileContent, &users)
-			if err != nil {
-				return err
-			}
 		}
 
 		err = json.Unmarshal(json.RawMessage(args["item"]), &user)
@@ -91,13 +88,6 @@ func Perform(args Arguments, writer io.Writer) error {
 			return errors.New("-id flag has to be specified")
 		}
 
-		if len(fileContent) != 0 {
-			err := json.Unmarshal(fileContent, &users)
-			if err != nil {
-				return err
-			}
-		}
-
 		user, _, err := getById(users, args["id"])
 		if err != nil {
 			return err
@@ -110,13 +100,6 @@ func Perform(args Arguments, writer io.Writer) error {
 			return errors.New("-id flag has to be specified")
 		}
 
-		if len(fileContent) != 0 {
-			err := json.Unmarshal(fileContent, &users)
-			if err != nil {
-				return err
-			}
-		}
-
 		u, out, err := getById(users, args["id"])
 		if err != nil {
 			return nil
@@ -127,18 +110,16 @@ func Perform(args Arguments, writer io.Writer) error {
 			return nil
 		}
 
+		var newUsers []User
 		for i, v := range users {
 			if v.Id == args["id"] {
-				newUsers := append(users[:i], users[i+1:]...)
-				bytes, err := json.Marshal(newUsers)
-				if err != nil {
-					return err
-				}
-				file.Truncate(0)
-				file.WriteAt(bytes, 0)
-				writer.Write(bytes)
+				newUsers = append(users[:i], users[i+1:]...)
 			}
 		}
+		bytes, _ := json.Marshal(newUsers)
+		file.Truncate(0)
+		file.WriteAt(bytes, 0)
+		writer.Write(bytes)
 
 	default:
 		err := fmt.Sprintf("Operation %s not allowed!", args["operation"])
