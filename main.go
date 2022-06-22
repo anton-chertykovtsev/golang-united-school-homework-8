@@ -24,7 +24,6 @@ const (
 func Perform(args Arguments, writer io.Writer) error {
 
 	var users []User
-	var user User
 
 	if args["operation"] == "" {
 		return errors.New("-operation flag has to be specified")
@@ -57,70 +56,21 @@ func Perform(args Arguments, writer io.Writer) error {
 		if args["item"] == "" {
 			return errors.New("-item flag has to be specified")
 		}
-
-		item := json.RawMessage(args["item"])
-		err = json.Unmarshal(item, &user)
-		if err != nil {
-			return err
-		}
-
-		u, out, err := getById(users, user.Id)
-		if err != nil {
-			return err
-		}
-
-		if out != "" && len(u) != 0 {
-			writer.Write([]byte(out))
-			return nil
-		}
-
-		users = append(users, user)
-		fileContent, err = json.Marshal(users)
-		if err != nil {
-			return err
-		}
-		if _, err := file.WriteAt(fileContent, 0); err != nil {
-			return err
-		}
-		writer.Write(fileContent)
+		addUser(users, args["item"], file, writer)
 
 	case "findById":
 		if args["id"] == "" {
 			return errors.New("-id flag has to be specified")
 		}
 
-		user, _, err := getById(users, args["id"])
-		if err != nil {
-			return err
-		}
-
-		writer.Write(user)
+		findById(users, args["id"], writer)
 
 	case "remove":
 		if args["id"] == "" {
 			return errors.New("-id flag has to be specified")
 		}
 
-		u, out, err := getById(users, args["id"])
-		if err != nil {
-			return err
-		}
-
-		if out != "" && len(u) == 0 {
-			writer.Write([]byte(out))
-			return nil
-		}
-
-		var newUsers []User
-		for i, v := range users {
-			if v.Id == args["id"] {
-				newUsers = append(users[:i], users[i+1:]...)
-			}
-		}
-		bytes, _ := json.Marshal(newUsers)
-		file.Truncate(0)
-		file.WriteAt(bytes, 0)
-		writer.Write(bytes)
+		removeUser(users, args["id"], file, writer)
 
 	default:
 		err := fmt.Sprintf("Operation %s not allowed!", args["operation"])
@@ -141,6 +91,71 @@ func getById(users []User, id string) ([]byte, string, error) {
 		}
 	}
 	return nil, fmt.Sprintf("Item with id %s not found", id), nil
+}
+
+func addUser(users []User, item string, file *os.File, writer io.Writer) {
+	var user User
+	err := json.Unmarshal(json.RawMessage(item), &user)
+	if err != nil {
+		panic(err)
+	}
+
+	u, out, err := getById(users, user.Id)
+	if err != nil {
+		panic(err)
+	}
+
+	if out != "" && len(u) != 0 {
+		writer.Write([]byte(out))
+		return
+	}
+
+	users = append(users, user)
+	fileContent, err := json.Marshal(users)
+	if err != nil {
+		panic(err)
+	}
+	if _, err := file.WriteAt(fileContent, 0); err != nil {
+		panic(err)
+	}
+	writer.Write(fileContent)
+}
+
+func findById(users []User, id string, writer io.Writer) {
+	user, _, err := getById(users, id)
+	if err != nil {
+		panic(err)
+	}
+	writer.Write(user)
+}
+
+func removeUser(users []User, id string, file *os.File, writer io.Writer) {
+	u, out, err := getById(users, id)
+	if err != nil {
+		panic(err)
+	}
+
+	if out != "" && len(u) == 0 {
+		writer.Write([]byte(out))
+		return
+	}
+
+	var newUsers []User
+	for i, v := range users {
+		if v.Id == id {
+			newUsers = append(users[:i], users[i+1:]...)
+		}
+	}
+	bytes, err := json.Marshal(newUsers)
+	if err != nil {
+		panic(err)
+	}
+	err = file.Truncate(0)
+	if err != nil {
+		panic(err)
+	}
+	file.WriteAt(bytes, 0)
+	writer.Write(bytes)
 }
 
 func parseArgs() Arguments {
