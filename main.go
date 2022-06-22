@@ -103,7 +103,7 @@ func Perform(args Arguments, writer io.Writer) error {
 
 		u, out, err := getById(users, args["id"])
 		if err != nil {
-			return nil
+			return err
 		}
 
 		if out != "" && len(u) == 0 {
